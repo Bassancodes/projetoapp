@@ -1,17 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Alert, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { Audio } from 'expo-av';
 
 // Componente HomeScreen
 const HomeScreen = () => (
   <View style={styles.page}>
     <Text style={styles.heading}>Bem-vindo ao Hospital</Text>
-    <Text style={styles.text}></
-    Text>
-    <Text style={styles.text}>Aqui voce ira poder comprar remedios,vizualizar seu carrinho de compras e entrar na nossa fila de espera para sua consulta.</
-    Text>
-
+    <Text style={styles.text}>Aqui você poderá comprar remédios, visualizar seu carrinho de compras e entrar na nossa fila de espera para consulta.</Text>
   </View>
 );
+
+// Componente de Registro
 const RegisterScreen = ({ navigateTo, setRegisteredUser }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -45,6 +44,9 @@ const RegisterScreen = ({ navigateTo, setRegisteredUser }) => {
       <Button title="Registrar" onPress={handleRegister} color="#3498db" />
     </View>
   );
+};
+
+// Componente de Login
 const LoginScreen = ({ navigateTo, registeredUser, setIsLoggedIn }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -80,7 +82,7 @@ const LoginScreen = ({ navigateTo, registeredUser, setIsLoggedIn }) => {
   );
 };
 
-};
+// Tela de Produtos (Shop) para exibir os três remédios com preços
 const ShopScreen = ({ addToCart, navigateTo }) => {
   const medicines = [
     {
@@ -128,6 +130,7 @@ const ShopScreen = ({ addToCart, navigateTo }) => {
   );
 };
 
+// Tela de Carrinho de Compras com cálculo do total
 const CartScreen = ({ cart, navigateTo }) => {
   const totalPrice = cart.reduce((acc, item) => acc + item.price * item.quantity, 0);
 
@@ -156,6 +159,78 @@ const CartScreen = ({ cart, navigateTo }) => {
           <Text style={styles.totalPrice}>Total: R$ {totalPrice.toFixed(2)}</Text>
         </View>
       )}
+    </View>
+  );
+};
+
+// Tela de Fila de Espera com som
+const QueueScreen = ({ navigateTo }) => {
+  const [inQueue, setInQueue] = useState(false);
+  const [queuePosition, setQueuePosition] = useState(null);
+  const [waitingTime, setWaitingTime] = useState(null);
+  const [timeLeft, setTimeLeft] = useState(null);
+  const [message, setMessage] = useState("");
+  const [sound, setSound] = useState();
+
+  const enterQueue = () => {
+    const position = Math.floor(Math.random() * 100) + 1;
+    const time = Math.floor(Math.random() * 10) + 5;
+
+    setQueuePosition(position);
+    setWaitingTime(time);
+    setTimeLeft(time);
+    setInQueue(true);
+    setMessage(`Você está na posição ${position} da fila. Tempo estimado: ${time} segundos.`);
+  };
+
+  useEffect(() => {
+    if (inQueue && timeLeft > 0) {
+      const timer = setInterval(() => {
+        setTimeLeft((prev) => prev - 1);
+      }, 1000);
+
+      return () => clearInterval(timer);
+    } else if (inQueue && timeLeft === 0) {
+      playSound();
+      setMessage(`Sua vez chegou! Por favor, dirija-se à sala ${Math.floor(Math.random() * 10) + 1} para consulta com o Dr. João da Silva.`);
+      setInQueue(false);
+    }
+  }, [inQueue, timeLeft]);
+
+  async function playSound() {
+    const { sound } = await Audio.Sound.createAsync(
+      require('./assets/car-warning-sound-2-189737.mp3') // Certifique-se de que o arquivo está na pasta 'assets'
+    );
+    setSound(sound);
+    await sound.playAsync();
+  }
+
+  useEffect(() => {
+    return sound
+      ? () => {
+          sound.unloadAsync();
+        }
+      : undefined;
+  }, [sound]);
+
+  return (
+    <View style={styles.page}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => navigateTo('Home')}>
+          <Text style={styles.backButton}>←</Text>
+        </TouchableOpacity>
+        <Text style={styles.subheading}>Fila de Espera</Text>
+      </View>
+      <View style={styles.queueContent}>
+        {inQueue ? (
+          <Text>{message}{'\n'}Tempo restante: {timeLeft} segundos</Text>
+        ) : (
+          <>
+            <Text>{message || "Clique em 'Entrar na Fila' para iniciar o processo."}</Text>
+            <Button title="Entrar na Fila" onPress={enterQueue} color="#3498db" />
+          </>
+        )}
+      </View>
     </View>
   );
 };
